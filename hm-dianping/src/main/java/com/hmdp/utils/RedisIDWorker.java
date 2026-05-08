@@ -17,7 +17,7 @@ public class RedisIDWorker {
 
     private static final long COUNT_BITS = 32;
 
-
+    @Resource
     private StringRedisTemplate stringRedisTemplate;
 
     public RedisIDWorker(StringRedisTemplate stringRedisTemplate) {
