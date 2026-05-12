@@ -28,3 +28,6 @@ end
 redis.call('incrby',stockKey,-1)
 -- 下单(保存用户)
 redis.call('sadd',orderKey,userId)
+
+-- 返回0表示成功
+return 0
