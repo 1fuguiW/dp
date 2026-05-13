@@ -204,9 +204,10 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
 
         // 3. 查询redis、按照距离排序、分页。结果：shopId、distance
         String key = SHOP_GEO_KEY + typeId;
+        // 搜索范围：50公里（可根据实际需求调整，5公里太小可能搜不到店铺）
         GeoResults<RedisGeoCommands.GeoLocation<String>> results = stringRedisTemplate.opsForGeo()
                 .radius(key,
-                        new Circle(new Point(x, y), new Distance(5, Metrics.KILOMETERS)),
+                        new Circle(new Point(x, y), new Distance(50, Metrics.KILOMETERS)),
                         RedisGeoCommands.GeoRadiusCommandArgs.newGeoRadiusArgs()
                                 .includeDistance()
                                 .sortAscending()

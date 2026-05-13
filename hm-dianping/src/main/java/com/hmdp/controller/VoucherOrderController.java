@@ -22,15 +22,26 @@ import javax.annotation.Resource;
 @RequestMapping("/voucher-order")
 public class VoucherOrderController {
 
-    /*
-     * 秒杀卷抢购
-     */
-
     @Resource
     private IVoucherOrderService voucherOrderService;
 
+    /**
+     * 秒杀券抢购（使用MQ异步处理）
+     * @param voucherId 秒杀券ID
+     * @return 订单ID
+     */
     @PostMapping("seckill/{id}")
     public Result seckillVoucher(@PathVariable("id") Long voucherId) {
         return voucherOrderService.seckillVoucher(voucherId);
+    }
+
+    /**
+     * 普通券抢购（同步处理）
+     * @param voucherId 优惠券ID
+     * @return 订单ID
+     */
+    @PostMapping("{id}")
+    public Result addVoucherOrder(@PathVariable("id") Long voucherId) {
+        return voucherOrderService.createVoucherOrder(voucherId);
     }
 }

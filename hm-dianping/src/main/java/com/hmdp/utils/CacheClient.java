@@ -137,4 +137,50 @@ public class CacheClient {
     private void unLock(String key){
         stringRedisTemplate.delete(key);
     }
+
+    /**
+     * 互斥锁解决缓存击穿（通用版本）
+     * 获取锁失败时休眠重试，成功时查DB并回写Redis
+     */
+    public <R, ID> R queryWithMutex(
+            String keyPrefix, ID id, Class<R> type, Function<ID, R> dbFallback, Long time, TimeUnit unit) {
+        String key = keyPrefix + id;
+        // 1.从redis查询缓存
+        String json = stringRedisTemplate.opsForValue().get(key);
+        // 2.判断是否存在
+        if (StrUtil.isNotBlank(json)) {
+            return JSONUtil.toBean(json, type);
+        }
+        // 判断命中的是否是空值
+        if (json != null) {
+            return null;
+        }
+
+        // 3.实现缓存重建
+        String lockKey = RedisConstants.LOCK_SHOP_KEY + id;
+        R r = null;
+        try {
+            boolean isLock = tryLock(lockKey);
+            if (!isLock) {
+                // 获取锁失败，休眠并重试
+                Thread.sleep(50);
+                return queryWithMutex(keyPrefix, id, type, dbFallback, time, unit);
+            }
+            // 获取锁成功，查询数据库
+            r = dbFallback.apply(id);
+            if (r == null) {
+                // 将空值写入redis，防止缓存穿透
+                stringRedisTemplate.opsForValue().set(key, "", RedisConstants.CACHE_NULL_TTL, TimeUnit.MINUTES);
+                return null;
+            }
+            // 写入redis
+            this.set(key, r, time, unit);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } finally {
+            // 释放锁
+            unLock(lockKey);
+        }
+        return r;
+    }
 }

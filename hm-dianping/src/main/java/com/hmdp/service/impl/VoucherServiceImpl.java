@@ -7,6 +7,7 @@ import com.hmdp.mapper.VoucherMapper;
 import com.hmdp.entity.SeckillVoucher;
 import com.hmdp.service.ISeckillVoucherService;
 import com.hmdp.service.IVoucherService;
+import com.hmdp.service.cache.VoucherListCacheService;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,12 +32,14 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, Voucher> impl
     @Resource
     private StringRedisTemplate stringRedisTemplate;
 
+    @Resource
+    private VoucherListCacheService voucherListCacheService;
+
 
     @Override
     public Result queryVoucherOfShop(Long shopId) {
-        // 查询优惠券信息
-        List<Voucher> vouchers = getBaseMapper().queryVoucherOfShop(shopId);
-        // 返回结果
+        // 多级缓存：Caffeine(L1) → Redis(L2) → MySQL(L3)
+        List<Voucher> vouchers = voucherListCacheService.getVoucherByShopId(shopId);
         return Result.ok(vouchers);
     }
 
